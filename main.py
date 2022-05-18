@@ -4,6 +4,7 @@ import pygame
 import os
 import time
 import random
+pygame.font.init()
 
 WIDTH, HEIGHT = 800, 800
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -24,24 +25,117 @@ YELLOW_LASER = pygame.image.load(os.path.join("assets", "pixel_laser_yellow.png"
 
 
 #background
-BG = pygame.image.load(os.path.join("assets", "background-black.png"))
+BG = pygame.transform.scale(pygame.image.load(os.path.join("assets", "background-black.png")),(WIDTH, HEIGHT))
 
+#creating the ship class
+class Ship:
+    def __init__(self, x, y, health=100):
+        self.x = x
+        self.y = y
+        self.health = health
+        self.ship_img = None
+        self.laser_img = None
+        self.lasers = []
+        self.cool_down_counter = 0
+        
+    def draw(self, window):
+        window.blit(self.ship_img, (self.x, self.y))
+        
+    def get_width(self):
+        return self.ship_img.get_width()
+    
+    def get_height(self):
+        return self.ship_img.get_height()
+    
+        
+        
+#Player Class
+class Player(Ship):
+    def __init__(self, x, y, health=100):
+        super().__init__(x, y, health)
+        self.ship_img = YELLOW_SPACE_SHIP
+        self.laser_img = YELLOW_LASER      
+        self.mask = pygame.mask.from_surface(self.ship_img)
+        self.max_health = health
+        
+#Enemy class
+class Enemy(Ship):
+    COLOR_MAP = {
+        "red": (RED_SPACE_SHIP, RED_LASER),
+        "green": (GREEN_SPACE_SHIP, GREEN_LASER),
+        "blue": (BLUE_SPACE_SHIP, BLUE_LASER),
+    }
+    
+    def __init__(self, x, y, color, health=100):
+        super().__init__(x, y, health)
+        self.ship_img, self.laser_img = self.COLOR_MAP[color]
+        self.mask = pygame.mask.from_surface(self.ship_img)
+        
+    def move(self, vel):
+        self.y += vel
+                  
 
+#main loop
 def main ():
     run = True
     FPS = 60
-    clock = pygame.time.Clock()
-    
-    while run:
-        clock.tick(FPS)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-        
-        
     level = 0
     lives = 5
     score = 0
     main_font = pygame.font.SysFont("comicsans", 50)
+    
+    enemies = []
+    wave_length = 5
+    enemy_vel = 1
+    
+    player_vel = 5
+    #ship = Ship(300, 650)
+    player = Player(300, 650)
+    clock = pygame.time.Clock()
+    #drawing the main game loop
+    def redraw_window():
+        WIN.blit(BG, (0,0))
+        #drawing the text
+        lives_label = main_font.render(f"Lives: {lives}", 1, (255,255,255))
+        level_label = main_font.render(f"Level: {level}", 1, (255,255,255))
+        #setting the text position
+        WIN.blit(lives_label, (10, 10))
+        WIN.blit(level_label, (WIDTH - level_label.get_width() - 10, 10))
+        
+        for enemy in enemies:
+            enemy.draw(WIN)
+        
+        player.draw(WIN)
+        
+        pygame.display.update()
+    
+    while run:
+        clock.tick(FPS)
+        if len(enemies) == 0:
+            level += 1
+            wave_length += 5
+            for i in range(wave_length):
+                enemy = Enemy(random.randrange(50, WIDTH - 100), random.randrange(-1500, -100), random.choice(["red", "green", "blue"]))
+                enemies.append(enemy)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+        #keyboard input
+        keys = pygame.key.get_pressed()
+        if keys [pygame.K_RIGHT] and player.x + player_vel + player.get_width() < WIDTH:#right arrow key
+            player.x += 5
+        if keys [pygame.K_LEFT] and player.x + player_vel > 0: #left arrow key
+            player.x -= 5
+        if keys [pygame.K_UP] and player.y + player_vel > 0: #up arrow key
+            player.y -= 5
+        if keys [pygame.K_DOWN] and player.y + player_vel + player.get_height() < HEIGHT: #down arrow key
+            player.y += 5
+         
+        for enemy in enemies:
+            enemy.move(enemy_vel)
+            
+                    
+        redraw_window()      
     
 main()
